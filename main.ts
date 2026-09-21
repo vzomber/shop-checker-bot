@@ -1,36 +1,39 @@
 import process from "process";
 import { setTimeout as sleep } from "node:timers/promises";
-import { chromium, type Browser } from "playwright";
-import { CHECK_INTERVAL_MS } from "./src/variables.ts";
+import { chromium, type Browser, type Page } from "playwright";
+import { CHECK_INTERVAL_MS, NO_CHANGE_MESSAGE_INTERVAL_MS } from "./src/variables.ts";
 import {
   checkIntervalSetup,
-  comparator,
+  compareProduct,
   readPageData,
   sendTelegramMessage,
-  type ComparisonResult,
+  formatProductMessage,
 } from "./src/index.ts";
 
-async function readDataAndCompare(browser: Browser) {
+let lastNoChangeNotificationSentAt: number | null = null;
+
+async function readDataAndCompare(page: Page) {
   let products;
-  let messages;
+  let comparisonResult;
 
-  products = await readPageData(browser);
-  messages = await comparator(products);
+  products = await readPageData(page);
+  comparisonResult = await compareProduct(products);
 
-  return messages;
-}
+  const shouldNotifyAboutChanges = comparisonResult.added.length > 0 || comparisonResult.removed.length > 0 || comparisonResult.changed.length > 0;
+  const isNoChangeReminderDue = lastNoChangeNotificationSentAt === null ||
+    Date.now() - lastNoChangeNotificationSentAt >= NO_CHANGE_MESSAGE_INTERVAL_MS;
 
-export function checkAndNotify(messages: ComparisonResult): void {
-  if (
-    messages.added.length ||
-    messages.removed.length ||
-    messages.changed.length
-  ) {
-    const tgMessage = `Change!\nTotal products: ${messages.total}\nAdded: ${messages.added.length}\nRemoved: ${messages.removed.length}\nChanged: ${messages.changed.length}`;
+  if (!shouldNotifyAboutChanges && !isNoChangeReminderDue) {
+    console.log("No changes. Skipping Telegram message until the reminder interval expires.");
+    return;
+  }
 
-    sendTelegramMessage(tgMessage);
-  } else {
-    console.log("No changes from baseline. Telegram notification skipped.");
+  const telegramMessage = formatProductMessage(products, comparisonResult);
+
+  await sendTelegramMessage(telegramMessage);
+
+  if (!shouldNotifyAboutChanges) {
+    lastNoChangeNotificationSentAt = Date.now();
   }
 }
 
@@ -43,12 +46,14 @@ async function main(): Promise<void> {
 
   try {
     while (true) {
-      const messages = await readDataAndCompare(browser);
+      const page = await browser.newPage();
 
-      checkAndNotify(messages);
+      await readDataAndCompare(page);
 
       console.log(`Next check in ${CHECK_INTERVAL_MS / 1000} seconds.`);
+
       await sleep(CHECK_INTERVAL_MS);
+      await page.close();
     }
   } finally {
     await browser.close();

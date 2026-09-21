@@ -1,4 +1,16 @@
 import process from "node:process";
+import { TELEGRAM_MAX_MESSAGE_LENGTH } from "./variables.ts";
+
+function trimMessage(text: string): string {
+  if (text.length <= TELEGRAM_MAX_MESSAGE_LENGTH) return text;
+
+  const notice = "\n\n[Message truncated]";
+  const end = TELEGRAM_MAX_MESSAGE_LENGTH - notice.length;
+  // Avoid cutting an emoji between its UTF-16 halves.
+  const shortened = text.slice(0, end).replace(/[\uD800-\uDBFF]$/, "");
+
+  return shortened.trimEnd() + notice;
+}
 
 function getTelegramApi(token: string) {
   return `https://api.telegram.org/bot${token}/sendMessage`;
@@ -25,7 +37,8 @@ export async function sendTelegramMessage(text: string): Promise<void> {
     throw new Error("Set BOT_TOKEN and CHAT_ID in .env.");
   }
 
-  const response = await createGelegramPostMessage(token, chatId, text);
+  const message = trimMessage(text);
+  const response = await createGelegramPostMessage(token, chatId, message);
 
   if (!response.ok) {
     throw new Error(`Telegram request failed: HTTP ${response.status}`);
@@ -36,5 +49,5 @@ export async function sendTelegramMessage(text: string): Promise<void> {
     throw new Error("Telegram could not send the message.");
   }
 
-  console.log("Telegram message sent.");
+  console.log("Telegram message sent. " + message);
 }

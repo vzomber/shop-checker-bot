@@ -1,5 +1,11 @@
-import { type Browser, type Page } from "playwright";
-import { CATALOG_URL, PRODUCT_LINK_SELECTOR } from "./variables.ts";
+import { setTimeout as sleep } from "node:timers/promises";
+import { type Page } from "playwright";
+import {
+  CATALOG_URL,
+  PRODUCT_LINK_SELECTOR,
+  PRODUCT_LOAD_DELAY_MS,
+  PRODUCT_WAIT_TIMEOUT_MS,
+} from "./variables.ts";
 import type { Product } from "./types.ts";
 
 function collectProductsData(elements: Element[]): Product[] {
@@ -24,6 +30,11 @@ function collectProductsData(elements: Element[]): Product[] {
 
 async function readProducts(page: Page): Promise<Product[]> {
   const links = page.locator(PRODUCT_LINK_SELECTOR);
+  await links
+    .first()
+    .waitFor({ state: "attached", timeout: PRODUCT_WAIT_TIMEOUT_MS });
+
+  await sleep(PRODUCT_LOAD_DELAY_MS);
   const products = await links.evaluateAll(collectProductsData);
 
   const trimmedProducts = products.map(({ id, name, url }) => ({
@@ -38,17 +49,13 @@ async function readProducts(page: Page): Promise<Product[]> {
   if (products.length > 0) {
     console.table(trimmedProducts);
   } else {
-    console.log(
-      "No product links found. Check the page preview for a loading or access restriction message.",
-    );
+    throw new Error("No product links found.");
   }
 
   return products;
 }
 
-export async function readPageData(browser: Browser) {
-  const page = await browser.newPage();
-
+export async function readPageData(page: Page) {
   page.on("console", (message) => {
     console.log(`[browser:${message.type()}] ${message.text()}`);
   });

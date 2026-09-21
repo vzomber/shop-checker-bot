@@ -7,9 +7,6 @@ export interface Product {
 export interface ComparisonResult {
   total: number;
   added: Product[];
-  addedLength: number;
   removed: Product[];
-  removedLength: number;
   changed: Product[];
-  changedLength: number;
 }
