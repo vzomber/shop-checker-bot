@@ -1,5 +1,5 @@
 import { readFile } from "node:fs/promises";
-import type { Product } from "./types.ts";
+import type { Product } from "../types.ts";
 
 const PRODUCTS_FILE = new URL("./products.json", import.meta.url);
 
