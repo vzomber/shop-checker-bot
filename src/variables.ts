@@ -1,6 +1,6 @@
 export const CATALOG_URL = "https://coins.bank.gov.ua/catalog.html";
 export const PRODUCT_LINK_SELECTOR = 'a[href*="/p-"]';
-export const CHECK_INTERVAL_MS = 60_000 / 3;
+export const CHECK_INTERVAL_MS = 60_000 * 5; // 5 minutes
 export const MAX_TIMEOUT_MS = 2_147_483_647;
 export const PRODUCT_LOAD_DELAY_MS = 1_000;
 export const PRODUCT_WAIT_TIMEOUT_MS = 5_000;

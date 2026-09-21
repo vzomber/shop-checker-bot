@@ -31,23 +31,38 @@ function createGelegramPostMessage(
 
 export async function sendTelegramMessage(text: string): Promise<void> {
   const token = process.env.BOT_TOKEN;
-  const chatId = process.env.CHAT_ID;
+  const chatId = process.env.CHAT_ID?.trim();
+  const secondChatId = process.env.CHAT_ID_2?.trim();
 
   if (!token || !chatId) {
     throw new Error("Set BOT_TOKEN and CHAT_ID in .env.");
   }
 
   const message = trimMessage(text);
-  const response = await createGelegramPostMessage(token, chatId, message);
+  const chatIds = [...new Set([chatId, secondChatId].filter((id): id is string => Boolean(id)))];
+  const errors: Error[] = [];
 
-  if (!response.ok) {
-    throw new Error(`Telegram request failed: HTTP ${response.status}`);
+  for (const destinationId of chatIds) {
+    try {
+      const response = await createGelegramPostMessage(token, destinationId, message);
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      const result = (await response.json()) as { ok: boolean };
+      if (!result.ok) {
+        throw new Error("Telegram could not send the message.");
+      }
+
+      console.log(`Telegram message sent to chat ${destinationId}.`);
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : "Unknown error";
+      errors.push(new Error(`Telegram delivery failed for chat ${destinationId}: ${reason}`));
+    }
   }
 
-  const result = (await response.json()) as { ok: boolean };
-  if (!result.ok) {
-    throw new Error("Telegram could not send the message.");
+  if (errors.length > 0) {
+    throw new AggregateError(errors, "Some Telegram messages could not be delivered.");
   }
-
-  console.log("Telegram message sent. " + message);
 }
