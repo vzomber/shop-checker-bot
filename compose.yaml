@@ -1,0 +1,14 @@
+services:
+  shop-checker:
+    build: .
+    init: true
+    shm_size: "1gb"
+    env_file:
+      - .env
+    volumes:
+      - type: bind
+        source: ./products.json
+        target: /app/products.json
+        read_only: true
+        bind:
+          create_host_path: false

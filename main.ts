@@ -1,7 +1,10 @@
 import process from "process";
 import { setTimeout as sleep } from "node:timers/promises";
 import { chromium, type Browser, type Page } from "playwright";
-import { CHECK_INTERVAL_MS, NO_CHANGE_MESSAGE_INTERVAL_MS } from "./src/variables.ts";
+import {
+  CHECK_INTERVAL_MS,
+  NO_CHANGE_MESSAGE_INTERVAL_MS,
+} from "./src/variables.ts";
 import {
   checkIntervalSetup,
   compareProduct,
@@ -19,12 +22,19 @@ async function readDataAndCompare(page: Page) {
   products = await readPageData(page);
   comparisonResult = await compareProduct(products);
 
-  const shouldNotifyAboutChanges = comparisonResult.added.length > 0 || comparisonResult.removed.length > 0 || comparisonResult.changed.length > 0;
-  const isNoChangeReminderDue = lastNoChangeNotificationSentAt === null ||
-    Date.now() - lastNoChangeNotificationSentAt >= NO_CHANGE_MESSAGE_INTERVAL_MS;
+  const shouldNotifyAboutChanges =
+    comparisonResult.added.length > 0 ||
+    comparisonResult.removed.length > 0 ||
+    comparisonResult.changed.length > 0;
+  const isNoChangeReminderDue =
+    lastNoChangeNotificationSentAt === null ||
+    Date.now() - lastNoChangeNotificationSentAt >=
+      NO_CHANGE_MESSAGE_INTERVAL_MS;
 
   if (!shouldNotifyAboutChanges && !isNoChangeReminderDue) {
-    console.log("No changes. Skipping Telegram message until the reminder interval expires.");
+    console.log(
+      "No changes. Skipping Telegram message until the reminder interval expires.",
+    );
     return;
   }
 
