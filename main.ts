@@ -11,9 +11,10 @@ import {
   readPageData,
   sendTelegramMessage,
   formatProductMessage,
+  saveProducts,
 } from "./src/index.ts";
 
-let lastNoChangeNotificationSentAt: number | null = null;
+let lastNotificationSentAt: number | null = null;
 
 async function readDataAndCompare(page: Page) {
   let products;
@@ -27,8 +28,8 @@ async function readDataAndCompare(page: Page) {
     comparisonResult.removed.length > 0 ||
     comparisonResult.changed.length > 0;
   const isNoChangeReminderDue =
-    lastNoChangeNotificationSentAt === null ||
-    Date.now() - lastNoChangeNotificationSentAt >=
+    lastNotificationSentAt === null ||
+    Date.now() - lastNotificationSentAt >=
       NO_CHANGE_MESSAGE_INTERVAL_MS;
 
   if (!shouldNotifyAboutChanges && !isNoChangeReminderDue) {
@@ -42,9 +43,11 @@ async function readDataAndCompare(page: Page) {
 
   await sendTelegramMessage(telegramMessage);
 
-  if (!shouldNotifyAboutChanges) {
-    lastNoChangeNotificationSentAt = Date.now();
+  if (shouldNotifyAboutChanges) {
+    await saveProducts(products);
   }
+
+  lastNotificationSentAt = Date.now();
 }
 
 async function main(): Promise<void> {

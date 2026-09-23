@@ -7,8 +7,7 @@ services:
       - .env
     volumes:
       - type: bind
-        source: ./products.json
-        target: /app/products.json
-        read_only: true
+        source: ./data
+        target: /app/data
         bind:
           create_host_path: false
